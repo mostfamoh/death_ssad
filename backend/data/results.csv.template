@@ -1,0 +1,1 @@
+timestamp,username,attack_type,target,attempts,elapsed_seconds,success,recovered_plaintext

@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TP Cryptographie Classique - Boîte à Outils</title>
+  
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="#">
+        <i class="bi bi-shield-lock"></i> TP Cryptographie Classique
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item">
+            <a class="nav-link" href="#register-section">Inscription</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#login-section">Connexion</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#tools-section">Outils</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#attacks-section">Attaques</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Container -->
+  <div class="container my-5">
+    
+    <!-- Header -->
+    <div class="text-center mb-5">
+      <h1 class="display-4">🔐 Boîte à Outils de Cryptographie Classique</h1>
+      <p class="lead">
+        Expérimentation des algorithmes César, Affine, Playfair, Hill 3×3<br>
+        + Simulations d'attaques + Protection Diffie-Hellman
+      </p>
+    </div>
+
+    <!-- Alert Zone -->
+    <div id="alert-zone"></div>
+
+    <!-- =============================================== -->
+    <!-- SECTION 1: INSCRIPTION -->
+    <!-- =============================================== -->
+    <section id="register-section" class="mb-5">
+      <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+          <h4><i class="bi bi-person-plus"></i> Inscription</h4>
+        </div>
+        <div class="card-body">
+          <form id="register-form">
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label class="form-label">Nom d'utilisateur</label>
+                <input type="text" class="form-control" id="reg-username" required>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Mot de passe</label>
+                <input type="password" class="form-control" id="reg-password" required>
+              </div>
+            </div>
+
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label class="form-label">Mode de stockage</label>
+                <select class="form-select" id="reg-mode" required>
+                  <option value="weak">Faible (chiffrement classique) - ⚠️ Pédagogique</option>
+                  <option value="secure" selected>Sécurisé (pbkdf2 + salt)</option>
+                </select>
+              </div>
+              <div class="col-md-6" id="cipher-selection">
+                <label class="form-label">Algorithme (mode faible)</label>
+                <select class="form-select" id="reg-cipher">
+                  <option value="caesar">César</option>
+                  <option value="affine">Affine</option>
+                  <option value="playfair">Playfair</option>
+                  <option value="hill">Hill 3×3</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Paramètres spécifiques selon algorithme -->
+            <div id="cipher-params" class="mb-3">
+              <!-- César -->
+              <div id="params-caesar" class="cipher-params" style="display:none;">
+                <label class="form-label">Décalage (shift)</label>
+                <input type="number" class="form-control" id="caesar-shift" value="3" min="1" max="25">
+              </div>
+              
+              <!-- Affine -->
+              <div id="params-affine" class="cipher-params" style="display:none;">
+                <div class="row">
+                  <div class="col-md-6">
+                    <label class="form-label">Coefficient a (premier avec 26)</label>
+                    <select class="form-select" id="affine-a">
+                      <option value="5" selected>5</option>
+                      <option value="3">3</option>
+                      <option value="7">7</option>
+                      <option value="9">9</option>
+                      <option value="11">11</option>
+                      <option value="15">15</option>
+                      <option value="17">17</option>
+                      <option value="19">19</option>
+                      <option value="21">21</option>
+                      <option value="23">23</option>
+                      <option value="25">25</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Décalage b</label>
+                    <input type="number" class="form-control" id="affine-b" value="8" min="0" max="25">
+                  </div>
+                </div>
+              </div>
+
+              <!-- Playfair -->
+              <div id="params-playfair" class="cipher-params" style="display:none;">
+                <label class="form-label">Clé Playfair</label>
+                <input type="text" class="form-control" id="playfair-key" value="SECRET" placeholder="Mot-clé">
+              </div>
+
+              <!-- Hill -->
+              <div id="params-hill" class="cipher-params" style="display:none;">
+                <label class="form-label">Matrice 3×3 (par défaut: exemple inversible)</label>
+                <small class="text-muted d-block mb-2">
+                  Matrice par défaut: [[6,24,1],[13,16,10],[20,17,15]]
+                </small>
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-check-circle"></i> Créer le compte
+            </button>
+          </form>
+
+          <div id="register-result" class="mt-3"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =============================================== -->
+    <!-- SECTION 2: CONNEXION -->
+    <!-- =============================================== -->
+    <section id="login-section" class="mb-5">
+      <div class="card shadow">
+        <div class="card-header bg-success text-white">
+          <h4><i class="bi bi-box-arrow-in-right"></i> Connexion</h4>
+        </div>
+        <div class="card-body">
+          <form id="login-form">
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label class="form-label">Nom d'utilisateur</label>
+                <input type="text" class="form-control" id="login-username" required>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Mot de passe</label>
+                <input type="password" class="form-control" id="login-password" required>
+              </div>
+            </div>
+
+            <div class="form-check mb-3">
+              <input class="form-check-input" type="checkbox" id="use-dh">
+              <label class="form-check-label" for="use-dh">
+                <strong>Utiliser Diffie-Hellman</strong> (échange de clé sécurisé)
+              </label>
+            </div>
+
+            <button type="submit" class="btn btn-success">
+              <i class="bi bi-key"></i> Se connecter
+            </button>
+          </form>
+
+          <div id="login-result" class="mt-3"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =============================================== -->
+    <!-- SECTION 3: OUTILS CRYPTOGRAPHIQUES -->
+    <!-- =============================================== -->
+    <section id="tools-section" class="mb-5">
+      <div class="card shadow">
+        <div class="card-header bg-info text-white">
+          <h4><i class="bi bi-tools"></i> Outils de Chiffrement/Déchiffrement</h4>
+        </div>
+        <div class="card-body">
+          
+          <ul class="nav nav-tabs" id="toolsTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active" id="caesar-tab" data-bs-toggle="tab" data-bs-target="#caesar-tool" type="button">César</button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="affine-tab" data-bs-toggle="tab" data-bs-target="#affine-tool" type="button">Affine</button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="playfair-tab" data-bs-toggle="tab" data-bs-target="#playfair-tool" type="button">Playfair</button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="hill-tab" data-bs-toggle="tab" data-bs-target="#hill-tool" type="button">Hill 3×3</button>
+            </li>
+          </ul>
+
+          <div class="tab-content mt-3" id="toolsTabContent">
+            
+            <!-- César Tool -->
+            <div class="tab-pane fade show active" id="caesar-tool">
+              <form id="caesar-form">
+                <div class="mb-3">
+                  <label class="form-label">Texte</label>
+                  <textarea class="form-control" id="caesar-text" rows="3" placeholder="Entrez votre texte"></textarea>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Décalage (shift)</label>
+                  <input type="number" class="form-control" id="caesar-tool-shift" value="3" min="1" max="25">
+                </div>
+                <button type="button" class="btn btn-primary me-2" onclick="toolCipher('caesar', 'encrypt')">Chiffrer</button>
+                <button type="button" class="btn btn-secondary" onclick="toolCipher('caesar', 'decrypt')">Déchiffrer</button>
+              </form>
+              <div id="caesar-result" class="mt-3"></div>
+            </div>
+
+            <!-- Affine Tool -->
+            <div class="tab-pane fade" id="affine-tool">
+              <form id="affine-form">
+                <div class="mb-3">
+                  <label class="form-label">Texte</label>
+                  <textarea class="form-control" id="affine-text" rows="3" placeholder="Entrez votre texte"></textarea>
+                </div>
+                <div class="row mb-3">
+                  <div class="col-md-6">
+                    <label class="form-label">Coefficient a</label>
+                    <select class="form-select" id="affine-tool-a">
+                      <option value="5" selected>5</option>
+                      <option value="3">3</option>
+                      <option value="7">7</option>
+                      <option value="9">9</option>
+                      <option value="11">11</option>
+                      <option value="15">15</option>
+                      <option value="17">17</option>
+                      <option value="19">19</option>
+                      <option value="21">21</option>
+                      <option value="23">23</option>
+                      <option value="25">25</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Décalage b</label>
+                    <input type="number" class="form-control" id="affine-tool-b" value="8" min="0" max="25">
+                  </div>
+                </div>
+                <button type="button" class="btn btn-primary me-2" onclick="toolCipher('affine', 'encrypt')">Chiffrer</button>
+                <button type="button" class="btn btn-secondary" onclick="toolCipher('affine', 'decrypt')">Déchiffrer</button>
+              </form>
+              <div id="affine-result" class="mt-3"></div>
+            </div>
+
+            <!-- Playfair Tool -->
+            <div class="tab-pane fade" id="playfair-tool">
+              <form id="playfair-form">
+                <div class="mb-3">
+                  <label class="form-label">Texte</label>
+                  <textarea class="form-control" id="playfair-text" rows="3" placeholder="Entrez votre texte"></textarea>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Clé Playfair</label>
+                  <input type="text" class="form-control" id="playfair-tool-key" value="SECRET">
+                </div>
+                <button type="button" class="btn btn-primary me-2" onclick="toolCipher('playfair', 'encrypt')">Chiffrer</button>
+                <button type="button" class="btn btn-secondary" onclick="toolCipher('playfair', 'decrypt')">Déchiffrer</button>
+              </form>
+              <div id="playfair-result" class="mt-3"></div>
+            </div>
+
+            <!-- Hill Tool -->
+            <div class="tab-pane fade" id="hill-tool">
+              <form id="hill-form">
+                <div class="mb-3">
+                  <label class="form-label">Texte (sera paddé avec X si nécessaire)</label>
+                  <textarea class="form-control" id="hill-text" rows="3" placeholder="Entrez votre texte"></textarea>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Matrice 3×3 (utilise matrice par défaut)</label>
+                  <small class="text-muted d-block">[[6,24,1],[13,16,10],[20,17,15]]</small>
+                </div>
+                <button type="button" class="btn btn-primary me-2" onclick="toolCipher('hill', 'encrypt')">Chiffrer</button>
+                <button type="button" class="btn btn-secondary" onclick="toolCipher('hill', 'decrypt')">Déchiffrer</button>
+              </form>
+              <div id="hill-result" class="mt-3"></div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =============================================== -->
+    <!-- SECTION 4: SIMULATION D'ATTAQUES -->
+    <!-- =============================================== -->
+    <section id="attacks-section" class="mb-5">
+      <div class="card shadow">
+        <div class="card-header bg-danger text-white">
+          <h4><i class="bi bi-bug"></i> Simulation d'Attaques</h4>
+        </div>
+        <div class="card-body">
+          <p class="text-muted">
+            Simulez des attaques ciblant l'authentification : Brute-force, Dictionary, Man-in-the-Middle.
+          </p>
+
+          <form id="attack-form">
+            <div class="mb-3">
+              <label class="form-label">Nom d'utilisateur (cible)</label>
+              <input type="text" class="form-control" id="attack-username" placeholder="Utilisateur à attaquer" required>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Ciphertext intercepté</label>
+              <input type="text" class="form-control" id="attack-intercepted" placeholder="Texte chiffré intercepté" required>
+            </div>
+
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label class="form-label">Type d'algorithme</label>
+                <select class="form-select" id="attack-cipher" required>
+                  <option value="caesar">César</option>
+                  <option value="affine">Affine</option>
+                  <option value="playfair">Playfair</option>
+                  <option value="hill">Hill 3×3</option>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Type d'attaque</label>
+                <select class="form-select" id="attack-type" required>
+                  <option value="all">Toutes les attaques</option>
+                  <option value="bruteforce">Brute-Force uniquement</option>
+                  <option value="dictionary">Dictionary Attack uniquement</option>
+                  <option value="mitm">Man-in-the-Middle complet</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Paramètres spécifiques pour Playfair -->
+            <div id="attack-playfair-params" class="mb-3" style="display:none;">
+              <label class="form-label">Clé Playfair (pour déchiffrement)</label>
+              <input type="text" class="form-control" id="attack-playfair-key" placeholder="Clé Playfair">
+              <small class="text-muted">Laissez vide pour essayer les clés courantes</small>
+            </div>
+
+            <div class="form-check mb-3">
+              <input class="form-check-input" type="checkbox" id="show-steps" checked>
+              <label class="form-check-label" for="show-steps">
+                <strong>Afficher les étapes détaillées de l'attaque</strong>
+              </label>
+            </div>
+
+            <button type="submit" class="btn btn-danger btn-lg">
+              <i class="bi bi-lightning"></i> Lancer l'attaque
+            </button>
+          </form>
+
+          <!-- Attack Progress -->
+          <div id="attack-progress" class="mt-4" style="display:none;">
+            <div class="alert alert-warning">
+              <div class="d-flex align-items-center">
+                <div class="spinner-border spinner-border-sm me-3" role="status">
+                  <span class="visually-hidden">Chargement...</span>
+                </div>
+                <div>
+                  <strong>Attaque en cours...</strong>
+                  <div id="progress-text" class="small"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="attack-result" class="mt-4"></div>
+
+          <hr class="my-4">
+
+          <div class="d-flex justify-content-between align-items-center">
+            <h5>Résultats des attaques</h5>
+            <button class="btn btn-outline-primary" onclick="downloadResults()">
+              <i class="bi bi-download"></i> Télécharger results.csv
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- Footer -->
+  <footer class="bg-dark text-white text-center py-4 mt-5">
+    <p class="mb-0">TP Cryptographie Classique - Démonstration pédagogique © 2025</p>
+    <small>Node.js (sans framework) + JavaScript Vanilla + Bootstrap 5</small>
+  </footer>
+
+  <!-- Bootstrap JS Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Application Logic -->
+  <script src="app.js"></script>
+</body>
+</html>
