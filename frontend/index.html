@@ -139,10 +139,56 @@
 
               <!-- Hill -->
               <div id="params-hill" class="cipher-params" style="display:none;">
-                <label class="form-label">Matrice 3×3 (par défaut: exemple inversible)</label>
-                <small class="text-muted d-block mb-2">
-                  Matrice par défaut: [[6,24,1],[13,16,10],[20,17,15]]
-                </small>
+                <label class="form-label">Clé Hill (texte ou matrice)</label>
+                
+                <!-- Mode selector -->
+                <div class="btn-group mb-2 w-100" role="group">
+                  <input type="radio" class="btn-check" name="hill-input-mode" id="hill-mode-text" value="text" checked>
+                  <label class="btn btn-outline-primary" for="hill-mode-text">
+                    <i class="bi bi-fonts"></i> Clé texte
+                  </label>
+                  
+                  <input type="radio" class="btn-check" name="hill-input-mode" id="hill-mode-matrix" value="matrix">
+                  <label class="btn btn-outline-primary" for="hill-mode-matrix">
+                    <i class="bi bi-grid-3x3"></i> Matrice
+                  </label>
+                </div>
+
+                <!-- Text key input -->
+                <div id="hill-text-input" class="mb-2">
+                  <div class="input-group">
+                    <input type="text" class="form-control" id="hill-key-text" 
+                           placeholder="Ex: MYSECRET" 
+                           value="CIPHER">
+                    <button type="button" class="btn btn-outline-info" id="convert-text-to-matrix">
+                      <i class="bi bi-arrow-right"></i> Convertir
+                    </button>
+                  </div>
+                  <small class="text-muted d-block">
+                    Entrez un mot ou phrase (au moins 3 lettres). Sera converti en matrice 3×3.
+                  </small>
+                </div>
+
+                <!-- Matrix input -->
+                <div id="hill-matrix-input" class="mb-2" style="display:none;">
+                  <div class="input-group">
+                    <input type="text" class="form-control" id="hill-key-matrix" 
+                           placeholder="[[6,24,1],[13,16,10],[20,17,15]]" 
+                           value="[[6,24,1],[13,16,10],[20,17,15]]">
+                    <button type="button" class="btn btn-outline-secondary" id="generate-hill-key">
+                      <i class="bi bi-shuffle"></i> Générer
+                    </button>
+                  </div>
+                  <small class="text-muted d-block">
+                    Format: [[a,b,c],[d,e,f],[g,h,i]] ou a,b,c,d,e,f,g,h,i
+                  </small>
+                </div>
+
+                <!-- Matrix preview -->
+                <div id="hill-matrix-preview" class="alert alert-info" style="display:none;">
+                  <strong>Matrice actuelle:</strong>
+                  <pre class="mb-0 mt-2" id="hill-matrix-display"></pre>
+                </div>
               </div>
             </div>
 

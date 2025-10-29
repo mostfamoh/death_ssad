@@ -173,7 +173,117 @@ document.addEventListener('DOMContentLoaded', () => {
   // Initialisation
   cipherSelection.style.display = modeSelect.value === 'weak' ? 'block' : 'none';
   updateCipherParams();
+
+  // Gestion du mode d'entrée Hill (texte vs matrice)
+  const hillModeText = document.getElementById('hill-mode-text');
+  const hillModeMatrix = document.getElementById('hill-mode-matrix');
+  const hillTextInput = document.getElementById('hill-text-input');
+  const hillMatrixInput = document.getElementById('hill-matrix-input');
+
+  hillModeText.addEventListener('change', () => {
+    if (hillModeText.checked) {
+      hillTextInput.style.display = 'block';
+      hillMatrixInput.style.display = 'none';
+    }
+  });
+
+  hillModeMatrix.addEventListener('change', () => {
+    if (hillModeMatrix.checked) {
+      hillTextInput.style.display = 'none';
+      hillMatrixInput.style.display = 'block';
+    }
+  });
+
+  // Bouton génération de clé Hill aléatoire
+  document.getElementById('generate-hill-key').addEventListener('click', async () => {
+    try {
+      const response = await apiRequest('/generate-hill-key', 'GET');
+      if (response.ok && response.data.ok) {
+        const matrixString = JSON.stringify(response.data.matrix);
+        document.getElementById('hill-key-matrix').value = matrixString;
+        displayMatrixPreview(response.data.matrix);
+        showAlert('Clé Hill 3×3 générée avec succès!', 'success');
+      } else {
+        showAlert('Erreur lors de la génération de la clé', 'danger');
+      }
+    } catch (error) {
+      showAlert('Erreur: ' + error.message, 'danger');
+    }
+  });
+
+  // Bouton conversion texte -> matrice
+  document.getElementById('convert-text-to-matrix').addEventListener('click', async () => {
+    const textKey = document.getElementById('hill-key-text').value.trim();
+    
+    if (!textKey || textKey.length < 3) {
+      showAlert('La clé doit contenir au moins 3 lettres', 'warning');
+      return;
+    }
+
+    try {
+      const response = await apiRequest('/key-to-matrix', 'POST', { key: textKey });
+      if (response.ok && response.data.ok) {
+        const matrixString = JSON.stringify(response.data.matrix);
+        document.getElementById('hill-key-matrix').value = matrixString;
+        displayMatrixPreview(response.data.matrix);
+        showAlert(`Clé "${textKey}" convertie en matrice!`, 'success');
+      } else {
+        showAlert('Erreur lors de la conversion: ' + (response.data?.error || 'Erreur inconnue'), 'danger');
+      }
+    } catch (error) {
+      showAlert('Erreur: ' + error.message, 'danger');
+    }
+  });
 });
+
+/**
+ * Affiche un aperçu visuel de la matrice
+ */
+function displayMatrixPreview(matrix) {
+  const preview = document.getElementById('hill-matrix-preview');
+  const display = document.getElementById('hill-matrix-display');
+  
+  const matrixText = `┌              ┐
+│ ${matrix[0][0].toString().padStart(2)} ${matrix[0][1].toString().padStart(2)} ${matrix[0][2].toString().padStart(2)} │
+│ ${matrix[1][0].toString().padStart(2)} ${matrix[1][1].toString().padStart(2)} ${matrix[1][2].toString().padStart(2)} │
+│ ${matrix[2][0].toString().padStart(2)} ${matrix[2][1].toString().padStart(2)} ${matrix[2][2].toString().padStart(2)} │
+└              ┘`;
+  
+  display.textContent = matrixText;
+  preview.style.display = 'block';
+}
+
+/**
+ * Parse une matrice Hill depuis une chaîne
+ */
+function parseHillMatrix(str) {
+  try {
+    // Nettoyer la chaîne
+    str = str.trim().replace(/\s+/g, '');
+    
+    // Si format JSON array
+    if (str.startsWith('[')) {
+      const parsed = JSON.parse(str);
+      if (Array.isArray(parsed) && parsed.length === 3) {
+        return parsed;
+      }
+    }
+    
+    // Si format simple: 9 nombres séparés par virgules
+    const numbers = str.split(',').map(n => parseInt(n.trim()));
+    if (numbers.length === 9 && numbers.every(n => !isNaN(n))) {
+      return [
+        [numbers[0], numbers[1], numbers[2]],
+        [numbers[3], numbers[4], numbers[5]],
+        [numbers[6], numbers[7], numbers[8]]
+      ];
+    }
+    
+    throw new Error('Format invalide');
+  } catch (e) {
+    throw new Error('Format de matrice invalide. Utilisez [[a,b,c],[d,e,f],[g,h,i]] ou a,b,c,d,e,f,g,h,i');
+  }
+}
 
 // ============================================================================
 // INSCRIPTION
@@ -202,7 +312,36 @@ document.getElementById('register-form').addEventListener('submit', async (e) =>
         params.key = document.getElementById('playfair-key').value;
         break;
       case 'hill':
-        params.keyMatrix = [[6,24,1],[13,16,10],[20,17,15]];
+        try {
+          const hillMode = document.querySelector('input[name="hill-input-mode"]:checked').value;
+          let matrix;
+          
+          if (hillMode === 'text') {
+            // Convertir la clé texte en matrice
+            const textKey = document.getElementById('hill-key-text').value.trim();
+            if (!textKey || textKey.length < 3) {
+              showAlert('La clé Hill doit contenir au moins 3 lettres', 'danger');
+              return;
+            }
+            
+            // Appeler l'API pour convertir
+            const conversionResult = await apiRequest('/key-to-matrix', 'POST', { key: textKey });
+            if (!conversionResult.ok || !conversionResult.data.ok) {
+              showAlert('Erreur de conversion de la clé: ' + (conversionResult.data?.error || 'Erreur inconnue'), 'danger');
+              return;
+            }
+            matrix = conversionResult.data.matrix;
+          } else {
+            // Mode matrice: parser la matrice saisie
+            const hillKeyStr = document.getElementById('hill-key-matrix').value;
+            matrix = parseHillMatrix(hillKeyStr);
+          }
+          
+          params.keyMatrix = matrix;
+        } catch (error) {
+          showAlert('Erreur de clé Hill: ' + error.message, 'danger');
+          return;
+        }
         break;
     }
   }

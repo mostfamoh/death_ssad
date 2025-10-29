@@ -391,6 +391,142 @@ function hillDecrypt(text, keyMatrix) {
   return result;
 }
 
+/**
+ * Convertit une clé texte en matrice Hill 3×3
+ * Utilise les valeurs ASCII/alphabet pour remplir la matrice
+ * et ajuste jusqu'à obtenir une matrice inversible
+ */
+function keyToHillMatrix(key) {
+  // Normaliser la clé: convertir en majuscules et garder seulement les lettres
+  key = key.toUpperCase().replace(/[^A-Z]/g, '');
+  
+  // Si la clé est trop courte, la répéter
+  while (key.length < 9) {
+    key += key;
+  }
+  
+  // Prendre les 9 premiers caractères et convertir en valeurs 0-25
+  const values = [];
+  for (let i = 0; i < 9; i++) {
+    values.push(key.charCodeAt(i) - 65); // A=0, B=1, ..., Z=25
+  }
+  
+  // Créer la matrice 3×3
+  let matrix = [
+    [values[0], values[1], values[2]],
+    [values[3], values[4], values[5]],
+    [values[6], values[7], values[8]]
+  ];
+  
+  // Vérifier si la matrice est inversible mod 26
+  const maxAttempts = 100;
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      const d = det3x3(matrix);
+      const detMod = mod(d, 26);
+      
+      if (gcd(detMod, 26) === 1) {
+        // Matrice valide trouvée!
+        return matrix;
+      }
+    } catch (e) {
+      // Matrice non inversible
+    }
+    
+    // Ajuster la matrice: incrémenter la première valeur
+    matrix[0][0] = (matrix[0][0] + 1) % 26;
+    
+    // Si on a fait un tour complet sur [0][0], ajuster [1][1]
+    if (attempt > 0 && attempt % 26 === 0) {
+      matrix[1][1] = (matrix[1][1] + 1) % 26;
+    }
+  }
+  
+  // Si échec, retourner une matrice connue valide basée sur le hash de la clé
+  const hash = key.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  return [
+    [6, (hash % 26), 1],
+    [13, 16, (hash % 13) + 1],
+    [20, 17, 15]
+  ];
+}
+
+/**
+ * Génère une matrice Hill 3×3 valide et inversible mod 26
+ * Essaie jusqu'à trouver une matrice dont le déterminant est premier avec 26
+ */
+function generateHillKey3x3() {
+  const maxAttempts = 1000;
+  
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    // Générer une matrice aléatoire 3×3 avec valeurs entre 0 et 25
+    const matrix = [];
+    for (let i = 0; i < 3; i++) {
+      const row = [];
+      for (let j = 0; j < 3; j++) {
+        row.push(Math.floor(Math.random() * 26));
+      }
+      matrix.push(row);
+    }
+    
+    // Vérifier si la matrice est inversible mod 26
+    try {
+      const d = det3x3(matrix);
+      const detMod = mod(d, 26);
+      
+      if (gcd(detMod, 26) === 1) {
+        // Matrice valide trouvée!
+        return matrix;
+      }
+    } catch (e) {
+      // Continue à chercher
+    }
+  }
+  
+  // Si échec après maxAttempts, retourner une matrice connue valide
+  return [[6, 24, 1], [13, 16, 10], [20, 17, 15]];
+}
+
+/**
+ * Convertit une matrice en chaîne lisible
+ */
+function matrixToString(matrix) {
+  return matrix.map(row => '[' + row.join(',') + ']').join(',');
+}
+
+/**
+ * Parse une chaîne en matrice 3×3
+ * Format: "[[a,b,c],[d,e,f],[g,h,i]]" ou "a,b,c,d,e,f,g,h,i"
+ */
+function stringToMatrix3x3(str) {
+  try {
+    // Nettoyer la chaîne
+    str = str.replace(/\s+/g, '');
+    
+    // Si format JSON array
+    if (str.startsWith('[')) {
+      const parsed = JSON.parse(str);
+      if (Array.isArray(parsed) && parsed.length === 3) {
+        return parsed;
+      }
+    }
+    
+    // Si format simple: 9 nombres séparés par virgules
+    const numbers = str.split(',').map(n => parseInt(n.trim()));
+    if (numbers.length === 9 && numbers.every(n => !isNaN(n))) {
+      return [
+        [numbers[0], numbers[1], numbers[2]],
+        [numbers[3], numbers[4], numbers[5]],
+        [numbers[6], numbers[7], numbers[8]]
+      ];
+    }
+    
+    throw new Error('Format invalide');
+  } catch (e) {
+    throw new Error('Impossible de parser la matrice. Format attendu: [[a,b,c],[d,e,f],[g,h,i]] ou a,b,c,d,e,f,g,h,i');
+  }
+}
+
 // ============================================================================
 // EXPORTS
 // ============================================================================
@@ -418,5 +554,9 @@ module.exports = {
   hillEncrypt,
   hillDecrypt,
   inverseMatrix3x3Mod26,
-  det3x3
+  det3x3,
+  generateHillKey3x3,
+  keyToHillMatrix,
+  matrixToString,
+  stringToMatrix3x3
 };

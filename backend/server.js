@@ -139,8 +139,9 @@ function handleRegister(req, res) {
           note = `Stored with Playfair (key: ${params.key})`;
           break;
         case 'hill':
-          stored = ciphers.hillEncrypt(password, params.keyMatrix || [[6,24,1],[13,16,10],[20,17,15]]);
-          note = `Stored with Hill 3x3`;
+          const keyMatrix = params.keyMatrix || [[6,24,1],[13,16,10],[20,17,15]];
+          stored = ciphers.hillEncrypt(password, keyMatrix);
+          note = `Stored with Hill 3x3 (key: ${ciphers.matrixToString(keyMatrix)})`;
           break;
         default:
           stored = password;
@@ -219,7 +220,8 @@ function handleLogin(req, res) {
             encrypted = ciphers.playfairEncrypt(payload, params.key || 'SECRET');
             break;
           case 'hill':
-            encrypted = ciphers.hillEncrypt(payload, params.keyMatrix || [[6,24,1],[13,16,10],[20,17,15]]);
+            const loginKeyMatrix = params.keyMatrix || [[6,24,1],[13,16,10],[20,17,15]];
+            encrypted = ciphers.hillEncrypt(payload, loginKeyMatrix);
             break;
           default:
             encrypted = payload;
@@ -399,6 +401,59 @@ function handleResultsDownload(req, res) {
   }
 }
 
+// Handler pour générer une clé Hill 3×3
+function handleGenerateHillKey(req, res) {
+  try {
+    const matrix = ciphers.generateHillKey3x3();
+    const matrixString = ciphers.matrixToString(matrix);
+    
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      ok: true,
+      matrix: matrix,
+      matrixString: matrixString,
+      note: 'Clé Hill 3×3 générée avec succès'
+    }));
+  } catch (error) {
+    res.writeHead(500, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      ok: false,
+      error: error.message
+    }));
+  }
+}
+
+// Handler pour convertir une clé texte en matrice Hill
+function handleKeyToMatrix(req, res) {
+  parseBody(req, (err, body) => {
+    if (err || !body.key) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, error: 'Clé manquante' }));
+      return;
+    }
+
+    try {
+      const matrix = ciphers.keyToHillMatrix(body.key);
+      const matrixString = ciphers.matrixToString(matrix);
+      
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        ok: true,
+        key: body.key,
+        matrix: matrix,
+        matrixString: matrixString,
+        note: 'Clé convertie en matrice Hill 3×3'
+      }));
+    } catch (error) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        ok: false,
+        error: error.message
+      }));
+    }
+  });
+}
+
 // Serveur principal
 const server = http.createServer((req, res) => {
   const parsedUrl = url.parse(req.url, true);
@@ -424,6 +479,10 @@ const server = http.createServer((req, res) => {
     handleDH(req, res);
   } else if (pathname === '/simulate/mitm' && req.method === 'POST') {
     handleSimulateMitm(req, res);
+  } else if (pathname === '/generate-hill-key' && req.method === 'GET') {
+    handleGenerateHillKey(req, res);
+  } else if (pathname === '/key-to-matrix' && req.method === 'POST') {
+    handleKeyToMatrix(req, res);
   } else if (pathname === '/results.csv' && req.method === 'GET') {
     handleResultsDownload(req, res);
   } else if (pathname.startsWith('/user/') && req.method === 'GET') {
